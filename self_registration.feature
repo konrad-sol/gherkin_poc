@@ -8,6 +8,7 @@ Feature: API consumer self-registration
             And Raava admin activate my account
         Then I should receive an email
             And I should be able to login
+            And I should be assigned to Default org and default team
 
     Scenario: As external developer I want to be abe to self register on Raava without invite code (auto approve is on)
         Given I'm on Raava main page
@@ -16,3 +17,4 @@ Feature: API consumer self-registration
             And I fill the registration form
             And I click Submit button
          Then I should be directed to Raava main page
+            And I should be assigned to Default org and default team
