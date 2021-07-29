@@ -1,60 +1,78 @@
 Feature: Invitation code
-    Scenario: As Raava admin I'm able to create invitation code
-        Given I'm on Raava admin page
-        When I click on invite codes button
-            And I choose organization
-            And I choose team
-            And I choose number of available slots
-            And I choose how long code should be valid
-            And I click create
-        Then I should get invite code
-            And Invite code should be visible in invite code tabel
 
-    Scenario: As Raava admin I'm able to change how long already created code should be valid
-        Given I'm on Raava admin page
-        When I click on invite codes button
-            And I click on already created invite code
-            And I change how long code should be valid
-            And I save the changes
-        Then Change should be saved
+    Rule: Admin invite management
+        Background:
+            Given I'm logged as admin
 
-    Scenario: As Raava admin I'm able to change how many user can login on already created code
-        Given I'm on Raava admin page
-        When I click on invite codes button
-            And I click on already created invite code
-            And I change how many users can use this code
-            And I save the changes
-        Then Change should be saved
+        Scenario: Admin can create invite code
+             When I create invite code
+             Then I shoud see it in invites list
 
-    Scenario: As Raava admin I'm able to delete already created code
-        Given I'm on Raava admin page
-        When I click on invite codes button
-            And I click on already created invite code
-            And I click on delete code
-        Then Code should be deleted
-            And Already created users shouldn't be deleted
+        Scenario: Can change existing invite code
+            Given invite code
+             When I modify invite with
+                  | maximum count | expiration |
+                  | 10            | 1 Jan 2022 |
+             Then invite should change
+
+        Scenario: Can delete invite
+            Given active invite code
+             When I delete invite
+             Then invite should be removed
     
-    Scenario: As external developer I able to register to Raava using invite code (auto-approve is off)
-        Given I'm on Raava main page
-            And Auto-approval setting in raava.conf is false
-        When I click on register button
-            And I click in link "I have invitation code"
-            And I fill the invite code
-            And I fill the registration form
-            And I click Submit button
-            And Raava admin activate my account
-        Then I should receive an email
-            And I should be able to login
-            And I should be assigned to proper org and proper team
+    Rule: Admin developer approval
+        Background:
+            Given I'm logged as admin
+              And there is invite code
+              And there is inactive developer with invite code
 
-    Scenario: As external developer I able to register to Raava using invite code (auto approve is on)
-       Given I'm on Raava main page
-            And Auto-approval setting in raava.conf is false
-        When I click on register button
-            And I click in link "I have invitation code"
-            And I fill the invite code
-            And I fill the registration form
-            And I click Submit button
-        Then I should receive an email
-            And I should redirected to main page
-            And I should be assigned to proper org and proper team
+        Scenario: See pending approvals
+             When I open approval page
+             Then I shoud see pending approval
+
+        Scenario: Approve developer
+             When I open approval page
+              And approve developer registration
+             Then developer should be active
+
+    Rule: Developer registration
+        Background:
+            Given Organisation "ACME"
+              And Team "Pinky & Brain"
+
+        Scenario: Register without approval default team
+            Given auto-approval is enabled
+              And there is active invite code
+             When developer sign up with invite code
+             Then developer should be created
+              And developer can login
+              And invite count should be "1"
+
+        Scenario: Register without approval and custom team
+            Given auto-approval is enabled
+              And there is invite code with
+                  | org  | team |
+                  | ACME | Pinky & Brain |
+             When developer sign up with invite code
+             Then developer should be created with
+                  | org  | team |
+                  | ACME | Pinky & Brain |
+
+        Scenario: Register with approval
+            Given auto-approval is disabled
+              And there is active invite code
+             When developer sign up with invite code
+             Then developer should be created inactive
+              And developer can't login
+
+        Scenario: Failed to register with expired code
+            Given there is expired invite code
+             When developer sign up with invite code
+             Then developer should see "code expired" error
+              And developer should not be created
+
+        Scenario: Failed to register when reached count
+            Given there is full invite code
+             When developer sign up with invite code
+             Then developer should see "code invalid" error
+              And developer should not be created

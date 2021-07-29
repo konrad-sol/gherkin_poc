@@ -1,33 +1,48 @@
-Feature: Creating API consumer
-    Scenario: As Raava admin I can create an account for API consumer
-        Given I'm on Raava admin page
-        When I click on API consumer button
-            And I click plus button
-            And I fill new user data
-            And I click submit button
-        Then User should get an email with link to set password
-            And Users stays in-active until new password was provided
-        When User provide a passwrod
-        Then User is able to login
-            And User becomes active
+Feature: Create Developer
+    
+    Rule: Admin developer management
+        Background:
+            Given I'm logged as admin
 
-    Scenario: As Raava admin I can create an account for API consumer with TTL
-        Given I'm on Raava admin page
-        When I click on API consumer button
-            And I click plus button
-            And I fill new user data
-            And I set time to live for the set-password link
-            And I click submit button
-        Then User should get an email with link to set password
-        When Users open the link after time expired
-        Then User can't provide a passwrod
-            And User stays inactive
+        Scenario: Create new developer
+             When I create developer
+             Then I shoud see it in developer list
+              And developer should be in-active
 
-    Scenario: As Raava admin I can't create an account for API consumer with already existing email
-        Given I'm on Raava admin page
-        When I click on API consumer button
-            And I click plus button
-            And I fill new user data with email that already exists in Raava
-            And I click submit button
-        Then I get error that email is not unique
+        Scenario: Allow set TTL for registration link
+             When I create developer with TTL password link
+             Then I should see TTL in developer form
 
+        Scenario: Should not allow developer with same email
+             When I create developer
+              And create developer again with same email
+             Then I get error that "email is not unique"
+
+    Rule: Developer login
+        Scenario: In-active developer should not be able to login
+            Given I'm in-active developer
+             When I try to log-in
+             Then I see login error
+
+        Scenario: Developer should receive password reset link on sign up
+            Given I'm in-active developer
+             Then I should see password reset link in email
+
+        Scenario: Developer should be activated when password set
+            Given I'm in-active developer
+             When I set password via password reset link
+             Then I should login
+
+        Scenario: If password link expired, developer should not be able to login
+            Given I'm in-active developer with
+                  | Password TTL |
+                  | 1 Jan 1987   |
+             When I set password via password reset link
+             Then I get error "link expired"
+
+        Scenario: Register if not expired
+            Given I'm in-active developer with
+                  | Password TTL |
+                  | 1 Jan 2022   |
+             When I set password via password reset link
+             Then I should login
